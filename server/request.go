@@ -20,6 +20,7 @@ type Request struct {
 	Proto      string
 	File       string
 	Querys     string
+	Gzip       bool
 }
 
 // Parse 解析 HTTP 头部信息
@@ -37,6 +38,11 @@ func (req *Request) Parse() {
 			hostWithPort := strings.Split(strings.Fields(ln)[1], ":")
 			req.Host = hostWithPort[0]
 			req.Port = hostWithPort[1]
+		}
+		if strings.HasPrefix(ln, "Accept-Encoding") {
+			if strings.Index(ln, "gzip") > 0 {
+				req.Gzip = true
+			}
 		}
 		if strings.Contains(ln, "keep-alive") {
 			req.KeepConn = true

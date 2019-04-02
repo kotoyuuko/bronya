@@ -1,6 +1,8 @@
 package server
 
 import (
+	"bytes"
+	"compress/gzip"
 	"net"
 	"strconv"
 )
@@ -10,6 +12,7 @@ type Response struct {
 	Code    int
 	Charset string
 	MIME    string
+	Gzip    bool
 	Headers []string
 	Content string
 }
@@ -29,14 +32,29 @@ func (resp *Response) Header(header string) {
 	resp.Headers = append(resp.Headers, header)
 }
 
+// GzipEncode 使用 Gzip 算法压缩响应内容
+func (resp *Response) GzipEncode() {
+	var buffer bytes.Buffer
+	gz := gzip.NewWriter(&buffer)
+	gz.Write([]byte(resp.Content))
+	gz.Flush()
+	gz.Close()
+	resp.Content = string(buffer.Bytes())
+	resp.Gzip = true
+}
+
 // DoResponse 发送响应
 func DoResponse(conn net.Conn, resp *Response) {
 	respPkg := "HTTP/1.1 " + strconv.Itoa(resp.Code) + "\r\n"
-	respPkg += "Content-Type: " + resp.MIME + "; charset=" + resp.Charset + "\r\n"
+	respPkg += "Content-Type: " + resp.MIME + "\r\n"
 	respPkg += "Content-Length: " + strconv.Itoa(resp.Length()) + "\r\n"
 
+	if resp.Gzip {
+		respPkg += "Content-Encoding: gzip\r\n"
+	}
+
 	for _, header := range resp.Headers {
-		respPkg += header
+		respPkg += header + "\r\n"
 	}
 
 	respPkg += "\r\n"

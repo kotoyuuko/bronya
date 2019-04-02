@@ -43,6 +43,11 @@ func (ctx *Context) Exec() {
 				MIME:    mime.TypeByExtension(path.Ext(ctx.Vhost.Root + file)),
 				Content: string(fileContent),
 			}
+
+			if ctx.Req.Gzip {
+				response.GzipEncode()
+			}
+
 			ctx.Res <- response
 			break
 		}
