@@ -3,19 +3,23 @@ package server
 import (
 	"bufio"
 	"strings"
+
+	"github.com/kotoyuuko/bronya/logger"
 )
 
 // Request 存储请求信息
 type Request struct {
 	ID         uint16
 	Scanner    *bufio.Scanner
-	Header     []string
+	Headers    []string
 	KeepConn   bool
 	Host       string
 	Port       string
 	Method     string
 	RequestURI string
 	Proto      string
+	File       string
+	Querys     string
 }
 
 // Parse 解析 HTTP 头部信息
@@ -23,7 +27,7 @@ func (req *Request) Parse() {
 	i := 0
 	for req.Scanner.Scan() {
 		ln := req.Scanner.Text()
-		req.Header = append(req.Header, ln)
+		req.Headers = append(req.Headers, ln)
 		if i == 0 {
 			req.Method = strings.Fields(ln)[0]
 			req.RequestURI = strings.Fields(ln)[1]
@@ -42,4 +46,11 @@ func (req *Request) Parse() {
 		}
 		i++
 	}
+	uri := strings.Split(req.RequestURI, "?")
+	req.File = uri[0]
+	if len(uri) > 1 {
+		req.Querys = uri[1]
+	}
+
+	logger.Info.Println(req.Method, req.Host, req.Port, req.RequestURI)
 }
