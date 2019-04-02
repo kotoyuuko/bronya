@@ -2,22 +2,27 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 
 	"github.com/kotoyuuko/bronya/logger"
 )
 
-type vhost struct {
+// Vhost 存储虚拟主机信息
+type Vhost struct {
 	Name  []string
 	Root  string
 	Index []string
 }
 
 type config struct {
-	Vhosts []vhost
+	Listen  string
+	Port    string
+	Vhosts  []Vhost
+	Default Vhost
 }
 
-// Config store parsed config
+// Config 存储从配置文件中读取并解析后的配置
 var Config *config
 
 func init() {
@@ -35,4 +40,17 @@ func init() {
 	}
 
 	logger.Info.Println("Config file parsed.")
+}
+
+// SearchVhost 按照指定的域名查找虚拟主机
+func SearchVhost(searchName string) (*Vhost, error) {
+	for _, host := range Config.Vhosts {
+		for _, name := range host.Name {
+			if name == searchName {
+				return &host, nil
+			}
+		}
+	}
+
+	return &Config.Default, errors.New("Vhost not found")
 }

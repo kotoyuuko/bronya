@@ -1,0 +1,32 @@
+{
+    "listen": "127.0.0.1",
+    "port": "8080",
+    "vhosts": [
+        {
+            "name": [
+                "bronya.test"
+            ],
+            "root": "/Volumes/Code/Test/bronya",
+            "index": [
+                "index.html",
+                "index.htm"
+            ]
+        },
+        {
+            "name": [
+                "mei.test"
+            ],
+            "root": "/volumes/Code/Test/mei",
+            "index": [
+                "index.html"
+            ]
+        }
+    ],
+    "default": {
+        "name": [],
+        "root": "/Volumes/Code/Test/bronya",
+        "index": [
+            "index.html"
+        ]
+    }
+}
