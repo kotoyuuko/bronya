@@ -16,6 +16,7 @@ To-do List
 
  - 更多的 HTTP Method 支持
  - 增加 Proxy 模式
+ - 支持 HTTPS
 
 ## License
 
