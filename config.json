@@ -10,7 +10,11 @@
             "index": [
                 "index.html",
                 "index.htm"
-            ]
+            ],
+            "fastcgi": {
+                "network": "tcp",
+                "address": "127.0.0.1:9000"
+            }
         },
         {
             "name": [
@@ -19,7 +23,11 @@
             "root": "/volumes/Code/Test/mei",
             "index": [
                 "index.html"
-            ]
+            ],
+            "fastcgi": {
+                "network": "tcp",
+                "address": "127.0.0.1:9000"
+            }
         }
     ],
     "default": {
@@ -27,6 +35,10 @@
         "root": "/Volumes/Code/Test/bronya",
         "index": [
             "index.html"
-        ]
+        ],
+        "fastcgi": {
+            "network": "tcp",
+            "address": "127.0.0.1:9000"
+        }
     }
 }

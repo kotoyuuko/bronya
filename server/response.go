@@ -5,15 +5,14 @@ import (
 	"compress/gzip"
 	"net"
 	"strconv"
+	"strings"
 )
 
 // Response 存储响应信息
 type Response struct {
 	Code    int
-	Charset string
-	MIME    string
 	Gzip    bool
-	Headers []string
+	Headers map[string]string
 	Content string
 }
 
@@ -29,7 +28,11 @@ func (resp *Response) Length() int {
 
 // Header 向响应数据包内添加自定义 Header
 func (resp *Response) Header(header string) {
-	resp.Headers = append(resp.Headers, header)
+	if resp.Headers == nil {
+		resp.Headers = make(map[string]string)
+	}
+	splited := strings.Split(header, ":")
+	resp.Headers[strings.Trim(splited[0], " ")] = strings.Trim(splited[1], " ")
 }
 
 // GzipEncode 使用 Gzip 算法压缩响应内容
@@ -45,20 +48,19 @@ func (resp *Response) GzipEncode() {
 
 // DoResponse 发送响应
 func DoResponse(conn net.Conn, resp *Response) {
-	respPkg := "HTTP/1.1 " + strconv.Itoa(resp.Code) + "\r\n"
-	respPkg += "Content-Type: " + resp.MIME + "\r\n"
+	respPkg := "HTTP/1.1 " + strconv.Itoa(resp.Code) + " " + HTTPStatusCode[resp.Code] + "\r\n"
 	respPkg += "Content-Length: " + strconv.Itoa(resp.Length()) + "\r\n"
 
 	if resp.Gzip {
 		respPkg += "Content-Encoding: gzip\r\n"
 	}
 
-	for _, header := range resp.Headers {
-		respPkg += header + "\r\n"
+	for key, value := range resp.Headers {
+		respPkg += key + ": " + value + "\r\n"
 	}
 
 	respPkg += "\r\n"
-	respPkg += resp.Content
+	respPkg += resp.Content + "\r\n"
 
 	conn.Write([]byte(respPkg))
 }

@@ -2,6 +2,8 @@ package server
 
 import (
 	"bufio"
+	"io"
+	"strconv"
 	"strings"
 
 	"github.com/kotoyuuko/bronya/logger"
@@ -10,7 +12,7 @@ import (
 // Request 存储请求信息
 type Request struct {
 	ID         uint16
-	Scanner    *bufio.Scanner
+	Reader     *bufio.Reader
 	Headers    []string
 	KeepConn   bool
 	Host       string
@@ -21,36 +23,49 @@ type Request struct {
 	File       string
 	Querys     string
 	Gzip       bool
+	Length     int
+	Body       string
 }
 
-// Parse 解析 HTTP 头部信息
-func (req *Request) Parse() {
+// ParseHeader 解析 HTTP 头部信息
+func (req *Request) ParseHeader() {
 	i := 0
-	for req.Scanner.Scan() {
-		ln := req.Scanner.Text()
-		req.Headers = append(req.Headers, ln)
-		if i == 0 {
-			req.Method = strings.Fields(ln)[0]
-			req.RequestURI = strings.Fields(ln)[1]
-			req.Proto = strings.Fields(ln)[2]
-		}
-		if strings.HasPrefix(ln, "Host") {
-			hostWithPort := strings.Split(strings.Fields(ln)[1], ":")
-			req.Host = hostWithPort[0]
-			req.Port = hostWithPort[1]
-		}
-		if strings.HasPrefix(ln, "Accept-Encoding") {
-			if strings.Index(ln, "gzip") > 0 {
-				req.Gzip = true
+	for {
+		if line, _, err := req.Reader.ReadLine(); err != io.EOF {
+			ln := string(line)
+
+			req.Headers = append(req.Headers, ln)
+			if i == 0 {
+				req.Method = strings.Fields(ln)[0]
+				req.RequestURI = strings.Fields(ln)[1]
+				req.Proto = strings.Fields(ln)[2]
 			}
-		}
-		if strings.Contains(ln, "keep-alive") {
-			req.KeepConn = true
-		}
-		if ln == "" {
+			if strings.HasPrefix(ln, "Host") {
+				hostWithPort := strings.Split(strings.Fields(ln)[1], ":")
+				req.Host = hostWithPort[0]
+				req.Port = hostWithPort[1]
+			}
+			if strings.HasPrefix(ln, "Accept-Encoding") {
+				if strings.Index(ln, "gzip") > 0 {
+					req.Gzip = true
+				}
+			}
+			if strings.HasPrefix(ln, "Content-Length") {
+				req.Length, err = strconv.Atoi(strings.Fields(ln)[1])
+				if err != nil {
+					req.Length = 0
+				}
+			}
+			if strings.Contains(ln, "keep-alive") {
+				req.KeepConn = true
+			}
+			if ln == "" {
+				break
+			}
+			i++
+		} else {
 			break
 		}
-		i++
 	}
 	uri := strings.Split(req.RequestURI, "?")
 	req.File = uri[0]
@@ -59,4 +74,15 @@ func (req *Request) Parse() {
 	}
 
 	logger.Info.Println(req.Method, req.Host, req.Port, req.RequestURI)
+}
+
+// ParseBody 解析 HTTP 包内容信息
+func (req *Request) ParseBody() {
+	for i := 0; i < req.Length; i++ {
+		b, err := req.Reader.ReadByte()
+		if err != nil {
+			break
+		}
+		req.Body += string(b)
+	}
 }

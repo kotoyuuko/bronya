@@ -8,11 +8,17 @@ import (
 	"github.com/kotoyuuko/bronya/logger"
 )
 
+type fastcgi struct {
+	Network string
+	Address string
+}
+
 // Vhost 存储虚拟主机信息
 type Vhost struct {
-	Name  []string
-	Root  string
-	Index []string
+	Name    []string
+	Root    string
+	Index   []string
+	Fastcgi fastcgi
 }
 
 type config struct {

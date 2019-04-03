@@ -6,9 +6,8 @@ import "strconv"
 func ErrorResponse(code int, msg string) *Response {
 	response := &Response{
 		Code:    code,
-		Charset: "utf-8",
-		MIME:    "text/html",
 		Content: "<h1>Bronya Boom!</h1><h4>Code " + strconv.Itoa(code) + "</h4><p>" + msg + "</p>",
 	}
+	response.Header("Content-Type: text/html; charset=utf-8")
 	return response
 }

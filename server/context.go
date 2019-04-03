@@ -3,10 +3,14 @@ package server
 import (
 	"io/ioutil"
 	"mime"
+	"net/http"
+	"net/url"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/kotoyuuko/bronya/config"
+	"github.com/kotoyuuko/bronya/fcgi"
 	"github.com/kotoyuuko/bronya/logger"
 )
 
@@ -30,18 +34,73 @@ func (ctx *Context) Exec() {
 	}
 	for _, file := range files {
 		if pathExist(ctx.Vhost.Root+file) && !isDir(ctx.Vhost.Root+file) {
-			fileContent, err := ioutil.ReadFile(ctx.Vhost.Root + file)
-			if err != nil {
-				logger.Warning.Println(err)
-				ctx.Res <- ErrorResponse(500, "Error")
-				return
+			response := &Response{
+				Code: 200,
 			}
 
-			response := &Response{
-				Code:    200,
-				Charset: "utf-8",
-				MIME:    mime.TypeByExtension(path.Ext(ctx.Vhost.Root + file)),
-				Content: string(fileContent),
+			if strings.HasSuffix(file, ".php") {
+				env := make(map[string]string)
+				env["SCRIPT_FILENAME"] = ctx.Vhost.Root + file
+				env["SERVER_SOFTWARE"] = "Bronya/1.0.0"
+				env["REMOTE_ADDR"] = "127.0.0.1"
+				env["QUERY_STRING"] = ctx.Req.Querys
+
+				fcgi, err := fcgi.Dial(ctx.Vhost.Fastcgi.Network, ctx.Vhost.Fastcgi.Address)
+				if err != nil {
+					logger.Error.Println(err)
+					ctx.Res <- ErrorResponse(504, "Error")
+					break
+				}
+
+				var resp *http.Response
+
+				if ctx.Req.Method == "POST" {
+					querys, err := url.ParseQuery(ctx.Req.Body)
+					if err != nil {
+						logger.Error.Println(err)
+						ctx.Res <- ErrorResponse(500, "Error")
+						break
+					}
+
+					resp, err = fcgi.PostForm(env, querys)
+					if err != nil {
+						logger.Error.Println(err)
+						ctx.Res <- ErrorResponse(500, "Error")
+						break
+					}
+				} else {
+					resp, err = fcgi.Get(env)
+					if err != nil {
+						logger.Error.Println(err)
+						ctx.Res <- ErrorResponse(500, "Error")
+						break
+					}
+				}
+
+				for k, val := range resp.Header {
+					for _, v := range val {
+						response.Header(k + ": " + v)
+					}
+				}
+
+				content, err := ioutil.ReadAll(resp.Body)
+				if err != nil {
+					logger.Error.Println(err)
+					ctx.Res <- ErrorResponse(504, "Error")
+					break
+				}
+
+				response.Content = string(content)
+			} else {
+				fileContent, err := ioutil.ReadFile(ctx.Vhost.Root + file)
+				if err != nil {
+					logger.Warning.Println(err)
+					ctx.Res <- ErrorResponse(500, "Error")
+					break
+				}
+
+				response.Header("Content-Type: " + mime.TypeByExtension(path.Ext(ctx.Vhost.Root+file)))
+				response.Content = string(fileContent)
 			}
 
 			if ctx.Req.Gzip {

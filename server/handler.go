@@ -12,10 +12,11 @@ func Handler(conn net.Conn) {
 	defer conn.Close()
 
 	req := &Request{
-		Scanner: bufio.NewScanner(conn),
+		Reader: bufio.NewReader(conn),
 	}
 
-	req.Parse()
+	req.ParseHeader()
+	req.ParseBody()
 
 	vhost, _ := config.SearchVhost(req.Host)
 
