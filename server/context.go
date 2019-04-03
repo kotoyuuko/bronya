@@ -48,7 +48,7 @@ func (ctx *Context) Exec() {
 				fcgi, err := fcgi.Dial(ctx.Vhost.Fastcgi.Network, ctx.Vhost.Fastcgi.Address)
 				if err != nil {
 					logger.Error.Println(err)
-					ctx.Res <- ErrorResponse(504, "Error")
+					ctx.Res <- ErrorResponse(502, "Bad Gateway")
 					break
 				}
 
@@ -58,21 +58,21 @@ func (ctx *Context) Exec() {
 					querys, err := url.ParseQuery(ctx.Req.Body)
 					if err != nil {
 						logger.Error.Println(err)
-						ctx.Res <- ErrorResponse(500, "Error")
+						ctx.Res <- ErrorResponse(500, "Internal Server Error")
 						break
 					}
 
 					resp, err = fcgi.PostForm(env, querys)
 					if err != nil {
 						logger.Error.Println(err)
-						ctx.Res <- ErrorResponse(500, "Error")
+						ctx.Res <- ErrorResponse(502, "Bad Gateway")
 						break
 					}
 				} else {
 					resp, err = fcgi.Get(env)
 					if err != nil {
 						logger.Error.Println(err)
-						ctx.Res <- ErrorResponse(500, "Error")
+						ctx.Res <- ErrorResponse(502, "Bad Gateway")
 						break
 					}
 				}
@@ -86,7 +86,7 @@ func (ctx *Context) Exec() {
 				content, err := ioutil.ReadAll(resp.Body)
 				if err != nil {
 					logger.Error.Println(err)
-					ctx.Res <- ErrorResponse(504, "Error")
+					ctx.Res <- ErrorResponse(502, "Bad Gateway")
 					break
 				}
 
@@ -95,7 +95,7 @@ func (ctx *Context) Exec() {
 				fileContent, err := ioutil.ReadFile(ctx.Vhost.Root + file)
 				if err != nil {
 					logger.Warning.Println(err)
-					ctx.Res <- ErrorResponse(500, "Error")
+					ctx.Res <- ErrorResponse(500, "Internal Server Error")
 					break
 				}
 

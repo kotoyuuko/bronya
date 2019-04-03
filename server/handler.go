@@ -33,13 +33,13 @@ func Handler(conn net.Conn) {
 		case res := <-ctx.Res:
 			switch res.(type) {
 			case error:
-				DoResponse(conn, ErrorResponse(500, "Error"))
+				DoResponse(conn, ErrorResponse(500, "Internal Server Error"))
 				break
 			case *Response:
 				DoResponse(conn, res.(*Response))
 				break
 			default:
-				DoResponse(conn, ErrorResponse(500, "Error"))
+				DoResponse(conn, ErrorResponse(500, "Internal Server Error"))
 			}
 		case err := <-ctx.Err:
 			DoResponse(conn, ErrorResponse(500, err.Error()))
